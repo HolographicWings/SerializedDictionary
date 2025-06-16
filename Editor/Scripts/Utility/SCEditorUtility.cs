@@ -92,13 +92,20 @@ namespace AYellowpaper.SerializedCollections.Editor
 
         public static bool HasDrawerForType(Type type)
         {
-            Type attributeUtilityType = typeof(SerializedProperty).Assembly.GetType("UnityEditor.ScriptAttributeUtility");
-            if (attributeUtilityType == null)
-                return false;
-            var getDrawerMethod = attributeUtilityType.GetMethod("GetDrawerTypeForType", BindingFlags.Static | BindingFlags.NonPublic);
-            if (getDrawerMethod == null)
-                return false;
-            return getDrawerMethod.Invoke(null, new object[] { type }) != null;
+            var drawers = TypeCache.GetTypesWithAttribute<CustomPropertyDrawer>();
+            foreach (var drawer in drawers)
+            {
+                var attributes = drawer.GetCustomAttributes(typeof(CustomPropertyDrawer), false) as CustomPropertyDrawer[];
+                foreach (var attr in attributes)
+                {
+                    var field = typeof(CustomPropertyDrawer).GetField("m_HandledType", BindingFlags.NonPublic | BindingFlags.Instance);
+                    var handledType = field?.GetValue(attr) as Type;
+                    if (handledType != null && handledType == type)
+                        return true;
+                }
+            }
+
+            return false;
         }
 
         internal static void AddGenericMenuItem(GenericMenu genericMenu, bool isOn, bool isEnabled, GUIContent content, GenericMenu.MenuFunction action)
